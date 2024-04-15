@@ -1,0 +1,77 @@
+SysEx - commands start with data bytes 
+00 01 05 43 00
+00    - extended manufacturer ID will follow
+01 05 - Manufacturer ID for M-Audio
+43 - Device ID, most likely
+00 - ???
+
+
+The remaining bytes are described in this document.
+
+
+
+TODO:
+Explain 19-byte data byte spikes
+Explain mute/expletive buttons
+Figure out sample bank and voice fx
+
+
+01 0A 00 01 00 35 00 00 00 76
+B0 B1 B2 B3 B4 B5 B6 B7 B8 B9
+
+B3 is command type
+
+B0 indicates message length:
+    B0 = 01 -> message is 10 bytes long
+    B0 = 02 -> message is 14 bytes long
+
+1) Sliders - B3 = 1
+
+Assuming slider value (SV henceforth) is an unsigned number from 0 to 7F describing slider position, where 0 is bottom and 7F is top
+All math is done in 8 bit two's complement, then the result's highest bit is set to 0.
+
+01 02 00 01 00 00 00 00 00 33 
+01 02 00 01 44 00 00 00 00 6F 
+01 02 01 01 44 00 00 00 00 6E 
+01 02 02 01 44 00 00 00 00 6D 
+01 02 03 01 44 00 00 00 00 6C 
+01 02 04 01 44 00 00 00 00 6B 
+01 02 05 01 44 00 00 00 00 6A
+B0 B1 B2 B3 B4 B5 B6 B7 B8 B9
+
+b1 is slider ID [incomplete]
+
+b2 is sequence number - starts with 00 twice
+
+B4 is 00 for start command, 44 for continuation command
+
+B5:
+    if SV  = 0, B5 is 0
+    if SV != 0, B5 = slider value + B4
+
+B6-B8 is 0
+
+B9 is checksum value. Summing all values (including the ones in sysex prologue) including this one will produce 0 mod 128.
+
+Each move of a slider sends a series of messages. These sequences may be stitched together as such:
+
+First, one message is sent where B2 and B4 is 0.
+
+Thereafter, a number of messages are sent, where the following rules apply:
+    For each B1 value, there is one or zero messages sent with each B2 value less than 5, and where B4 is 44.
+    When interpreting, the messages should be grouped by B1, then sorted by ascending B2
+    The messages are sent in ascending B2 order. 
+    Each slider modification started by a B1 and B2 combo is terminated with a B2 = 5.
+
+
+
+Buttons - B3 = 2
+
+
+
+
+
+
+
+Patching.
+This device supports patching any input to any output. There are 6 inputs, and 6 outputs.

@@ -1,0 +1,19 @@
+first 5 bytes are constant - 0 1 5 67 0
+
+
+sliders:
+
+
+all normal sliders go B2 = 00 00 01 02 03 04 05, while main dial goes 00 - 6x 04 - 6x 05
+
+Sliders 0, 1, 2 modify slider IDs 00, 02, 04
+Slider 3 modifies 06 in B200, while modifying 08 afterwards
+
+Slider 4 modifies 08 in B200, then alternates 06 and 0A.
+
+Some B2 values have fixed SVs and correspondingly fixed B5 and B9.
+
+
+buttons:
+
+Mute buttons have a 19-byte spikes
