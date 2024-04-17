@@ -3,7 +3,7 @@ SysEx - commands start with data bytes
 00    - extended manufacturer ID will follow
 01 05 - Manufacturer ID for M-Audio
 43 - Device ID, most likely
-00 - ???
+00 - ??? (not constant, observed to be 127)
 
 
 The remaining bytes are described in this document.
@@ -39,17 +39,17 @@ All math is done in 8 bit two's complement, then the result's highest bit is set
 01 02 05 01 44 00 00 00 00 6A
 B0 B1 B2 B3 B4 B5 B6 B7 B8 B9
 
-b1 is slider ID [incomplete]
+b1 is source ID
 
-b2 is sequence number - starts with 00 twice
+b2 is sink ID
 
-B4 is 00 for start command, 44 for continuation command
+B4 is sometimes 00, sometimes 44
 
 B5:
     if SV  = 0, B5 is 0
     if SV != 0, B5 = slider value + B4
 
-B6-B8 is 0
+B6-B8 is padding 0
 
 B9 is checksum value. Summing all values (including the ones in sysex prologue) including this one will produce 0 mod 128.
 

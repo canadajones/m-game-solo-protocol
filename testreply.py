@@ -1,10 +1,13 @@
+#!/usr/bin/python
+
 import mido
 import os
 
 
 
 
-command_string = "00 01 05 43 00 01 00 04 00 44 73 00 00 00 7b"
+command_string = "00 01 05 43 02 01 00 00 00 42 72"
+
 
 command = [int(x, 16) for x in command_string.split(" ")]
 

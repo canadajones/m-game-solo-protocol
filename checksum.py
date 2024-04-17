@@ -1,15 +1,13 @@
 #!/usr/bin/python
 import linecache
+import compose
 
-filename = input()
+message = input("Please input message to checksum: ")
+
+message.split(" ")
+
+message_bytes = [int(e,16) for e in message.split(" ")]
 
 
-for i in range(127):
-
-    x = linecache.getline(filename,123)
-    a = x.split(" ")
-    a.pop(-1)
-
-    b = [int(el, 16) for el in a]
-
-    print(sum(b) % 128)
+print("{:02X}".format(compose.compute_checksum(message_bytes)))
+    
