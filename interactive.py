@@ -3,6 +3,10 @@
 
 import mido
 import os
+import time
+import keyboard
+import sys
+
 import console
 import compose
 
@@ -13,6 +17,8 @@ grab_command = console.grab_command
 clear = console.clear
 
 current_input = ""
+
+
 
 def user_select_input():
 	global current_input
@@ -76,10 +82,15 @@ def list_msg_types(args):
 		print(t[0], ":", t[1])
 	return (True, None)
 
-current_message = ""
+current_message = []
 
 def list_message(args):
 	print(''.join('{:02X} '.format(a) for a in current_message))
+	return (True, None)
+
+def list_message_pretty(args):
+	print(current_message)
+	print(compose.MGMessage(None, current_message))
 	return (True, None)
 
 def patch(args):
@@ -88,14 +99,26 @@ def patch(args):
 	source = args[0]
 	sink = args[1]
 
+	if not source in compose.sources.keys():
+		return (False, "E_no_such_source")
+
+	if not sink in compose.sinks.keys():
+		return (False, "E_no_such_sink")
 	
 	current_message = compose.MGMessage("short", source, sink, "patch", [0x44, 0x73]).compose_message()
 	return (True, None)
 
 def unpatch(args):
 	global current_message
+	
 	source = args[0]
 	sink = args[1]
+	
+	if not source in compose.sources.keys():
+		return (False, "E_no_such_source")
+
+	if not sink in compose.sinks.keys():
+		return (False, "E_no_such_sink")
 
 
 	current_message = compose.MGMessage("short", source, sink, "patch", [0x44, 0x73]).compose_message()
@@ -106,20 +129,69 @@ def vol_change(args):
 
 	source = args[0]
 	sink = args[1]
-	val = int(args[2], 16)
+	
+	try:
+		val = int(args[2], 16)
+
+	except:
+		return (False, "E_irrepresentible_vol")
+	
+	if not source in compose.sources.keys():
+		return (False, "E_no_such_source")
+
+	if not sink in compose.sinks.keys():
+		return (False, "E_no_such_sink")
+	
+	if val > 127 or val < 0:
+		return (False, "E_irrepresentible_vol")
+
 
 	current_message = compose.MGMessage("short", source, sink, "vol_change", [0x00, val]).compose_message()
 	return (True, None)
 
 
+def enter_message(args):
+	global current_message
+
+	current_message = compose.hexstring_to_list(' '.join(args))
+	
+	return (True, None)
+
 def transmit(args):
+	global current_message
+
 	print("using indev:", current_input, "outdev:", current_output)
 	with mido.open_input(current_input) as inport:
 		with mido.open_output(current_output) as o:
 			o.send(mido.Message("sysex", data=current_message))
-			for msg in inport:
-				print(''.join('{:02X} '.format(a) for a in msg.data))
+			
+			current_message = []
+			
+			time.sleep(0.01)
+
+			for msg in inport.iter_pending():
+				print(compose.list_to_hexstring(msg.data))
 				print(compose.MGMessage(None, msg.data))
+			return (True, None)
+
+
+def listen(args):
+	with mido.open_input(current_input) as inport:
+		try:
+			while True:
+				if (msg := inport.poll()):
+					print(compose.list_to_hexstring(msg.data))
+					print(compose.MGMessage(None, msg.data))
+		
+		
+		except:
+			return (True, None)
+		
+
+
+
+
+
 
 
 function_command_dict = {
@@ -130,7 +202,10 @@ function_command_dict = {
 	"unpatch": unpatch,
 	"vol_change": vol_change,
 	"list_message": list_message,
-	"transmit": transmit
+	"pretty_message": list_message_pretty,		
+	"enter_message": enter_message,
+	"transmit": transmit,
+	"listen": listen
 
 }
 

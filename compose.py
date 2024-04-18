@@ -17,6 +17,7 @@ def list_to_hexstring(l):
 
 
 lengths = {
+	0x00: "tiny",
 	0x01: "short",
 	0x02: "long"
 }
@@ -46,6 +47,7 @@ msg_types = {
 }
 
 lengths = {
+	"tiny":       0x00,
     "short":      0x01,
     "long":       0x02
 }
@@ -80,9 +82,9 @@ def lookup_value(dictionary, needle):
 
 class MGMessage:         
 	manufacturer_id = "00 01 05" 
-	product_id = "43 00"
+	product_id = "43"
 
-	def __init__(self, length, source, sink = "", msg_type ="", payload = []):
+	def __init__(self, length, source, sink = "", msg_type ="", payload = [], success=0x00):
 		if (length == None):
 			self.initialise(source)
 			return
@@ -93,32 +95,37 @@ class MGMessage:
 		assert msg_type in msg_types.keys()
 		
 		if (length == "short"):
-			assert(len(payload) == 2)
+			assert len(payload) == 2
 
+		if (length == "tiny"):
+			assert len(payload) == 2
 
 		if (length == "long"):
 			raise "Long messages unsupported"
 
+
+		self.success_byte = success
 		self.length = length
 		self.source = source
 		self.sink = sink
 		self.msg_type = msg_type
 		self.payload = payload
-
+		
 
 	def __str__(self):
-		return "MGMessage of length {}. Action {} ({} | {}). Payload {}.".format(self.length, self.msg_type, self.source, self.sink, ' '.join("{:02X}".format(pad) for pad in self.payload))
+		return "MGMessage of length {}. Status {}. Action {} ({} | {}). Payload {}.".format(self.length, "{:02X}".format(self.success_byte), self.msg_type, self.source, self.sink, ' '.join("{:02X}".format(pad) for pad in self.payload))
 
 	def __eq__(self, other):
 		assert isinstance(other, MGMessage)
 		
 		
 
-		return self.length   == other.length   and\
-			   self.source   == other.source   and\
-			   self.sink     == other.sink     and\
-			   self.msg_type == other.msg_type and\
-			   self.payload  == other.payload
+		return self.success_byte  == other.success_byte and\
+			   self.length        == other.length       and\
+			   self.source        == other.source       and\
+			   self.sink          == other.sink         and\
+			   self.msg_type      == other.msg_type     and\
+			   self.payload       == other.payload
 
 
 	def compose_message(self):
@@ -133,21 +140,48 @@ class MGMessage:
 			
 			padding = [0x00] * 3
 			
-			proto_message = prologue + [length_byte, source_byte, sink_byte, msg_type_byte] + self.payload + padding
+			proto_message = prologue + [self.success_byte, length_byte, source_byte, sink_byte, msg_type_byte] + self.payload + padding
 
 			return proto_message + [compute_checksum_value(proto_message)]
 
 	def initialise(self, rmsg):
 		msg = list(rmsg)
 		assert msg[:3] == hexstring_to_list(self.manufacturer_id), "({} / {})".format(msg[:3], hexstring_to_list(self.manufacturer_id))
-		assert msg[3:5] == hexstring_to_list(self.product_id), "({} / {})".format(msg[3:5], hexstring_to_list(self.product_id))
+		assert [msg[3]] == hexstring_to_list(self.product_id), "({} / {})".format([msg[3]], hexstring_to_list(self.product_id))
 		assert compute_checksum(msg) == 0, compute_checksum(msg)
 
+		self.success_byte = msg[4]
+
 		contents = msg[5:]
+		
+		assert contents[0] in lengths.values(), contents[0]
+		
+
+		if (contents[0] == 0x00):
+			self.length = "tiny"
+			assert len(contents) == 6 
+
+			source_byte   = contents[1]
+			sink_byte     = contents[2]
+			msg_type_byte = contents[3]
+			payload       = contents[4]
+			checksum_val  = contents[5]
+
+			assert source_byte in sources.values()
+			assert sink_byte in sinks.values()
+			assert msg_type_byte in msg_types.values()
+
+			self.source = lookup_value(sources, source_byte)
+			self.sink = lookup_value(sinks, sink_byte)
+			self.msg_type = lookup_value(msg_types, msg_type_byte)
+			
+
+			self.payload = [payload]
+
 
 		if (contents[0] == 0x01):
 			self.length = "short"
-			assert(len(contents) == 10)
+			assert len(contents) == 10
 
 			source_byte   = contents[1]
 			sink_byte     = contents[2]
@@ -174,12 +208,7 @@ class MGMessage:
 			assert(len(contents) == 14)
 
 
-		else:
-			raise "Unsupported length value: 0x{:02X}".format(contents[0])
-
-
-
 _testVal = MGMessage("short", "microphone", "main_out", "patch", [0x44, 0x73])
 
-assert _testVal.compose_message() == hexstring_to_list("00 01 05 43 00 01 00 04 00 44 73 00 00 00 7b"), "{} / {}".format(_testVal, "00 01 05 43 00 01 00 04 00 44 73 00 00 00 7b")
+assert _testVal.compose_message() == hexstring_to_list("00 01 05 43 00 01 00 04 00 44 73 00 00 00 7b"), "{} / {}".format(list_to_hexstring(_testVal.compose_message()), "00 01 05 43 00 01 00 04 00 44 73 00 00 00 7b")
 assert MGMessage(None, _testVal.compose_message()) == _testVal, "{} / {}".format(MGMessage(None, _testVal.compose_message()), _testVal)
