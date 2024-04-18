@@ -3,7 +3,7 @@ SysEx - commands start with data bytes
 00    - extended manufacturer ID will follow
 01 05 - Manufacturer ID for M-Audio
 43 - Device ID, most likely
-00 - ??? (not constant, observed to be 127)
+00 - Status - 00 for success, 7F for error
 
 
 The remaining bytes are described in this document.
