@@ -16,40 +16,14 @@ def list_to_hexstring(l):
 	return ''.join('{:02X} '.format(a) for a in l)
 
 
-lengths = {
-	0x00: "tiny",
-	0x01: "short",
-	0x02: "long"
-}
-
-sources = {
-	0x00: "microphone",
-	0x02: "game",
-	0x04: "chat",
-	0x06: "auxiliary",
-	0x08: "sampler",
-	0x0A: "system"
-}
-
-sinks = {
-	0x00: "stream",
-	0x01: "chat",
-	0x02: "alternate_usb",
-	0x03: "sampler_out",
-	0x04: "main_out",
-	0x05: "headphones_out"
-}
-
-msg_types = {
-	0x00: "patch",
-	0x01: "vol_change",
-	0x02: "button"
-}
 
 lengths = {
 	"tiny":       0x00,
     "short":      0x01,
-    "long":       0x02
+    "long":       0x02,
+	"longer":     0x04,
+	"bigger":     0x06,
+	"huge":		  0x0B
 }
 sources = {
     "microphone": 0x00,
@@ -57,7 +31,16 @@ sources = {
     "chat":       0x04,
     "auxiliary":  0x06,
     "sampler":    0x08,
-    "system":     0x0A
+    "system":     0x0A,
+	"voicefx":	  0x0E,
+	"muteaux":    0x0C,
+	"banking":	  0x10,
+	"button1":    0x14,
+	"button2":    0x16,
+	"button3":	  0x18,
+	"button4":	  0x1A,
+	"button5":    0x1C,
+	"button6":    0x1E
 }
 sinks = {
     "stream":     0x00,
@@ -70,7 +53,10 @@ sinks = {
 msg_types = {
     "patch":      0x00,
     "vol_change": 0x01,
-    "button":     0x02
+    "button":     0x02,
+	"voicefx":	  0x04,
+	"voicefx2":   0x07,
+	"voicefx3":	  0x08
 }
 
 
@@ -94,14 +80,21 @@ class MGMessage:
 		assert sink in sinks.keys()
 		assert msg_type in msg_types.keys()
 		
-		if (length == "short"):
-			assert len(payload) == 2
-
 		if (length == "tiny"):
 			assert len(payload) == 2
 
+		if (length == "short"):
+			assert len(payload) == 5
+	
 		if (length == "long"):
-			raise "Long messages unsupported"
+			assert len(payload) == 7
+		
+		if (length == "bigger"):
+			assert len(payload) == 27
+
+		if (length == "huge"):
+			assert len(payload) == 45
+		
 
 
 		self.success_byte = success
@@ -138,9 +131,8 @@ class MGMessage:
 
 		if (self.length == "short"):
 			
-			padding = [0x00] * 3
 			
-			proto_message = prologue + [self.success_byte, length_byte, source_byte, sink_byte, msg_type_byte] + self.payload + padding
+			proto_message = prologue + [self.success_byte, length_byte, source_byte, sink_byte, msg_type_byte] + self.payload
 
 			return proto_message + [compute_checksum_value(proto_message)]
 
@@ -186,14 +178,14 @@ class MGMessage:
 			source_byte   = contents[1]
 			sink_byte     = contents[2]
 			msg_type_byte = contents[3]
-			payload 	  = contents[4:6]
-			padding		  = contents[6:9]
+			payload 	  = contents[4:9]
+			#padding       = contents[7:9]
 			checksum_val  = contents[9]
 
 			assert source_byte in sources.values()
 			assert sink_byte in sinks.values()
 			assert msg_type_byte in msg_types.values()
-			assert padding == [0x00, 0x00, 0x00], ("Padding contains values: " + ' '.join("{:02X}".format(pad) for pad in padding))
+			#assert padding == [0x00, 0x00], ("Padding contains values: " + ' '.join("{:02X}".format(pad) for pad in padding))
 
 			self.source = lookup_value(sources, source_byte)
 			self.sink = lookup_value(sinks, sink_byte)
@@ -207,8 +199,97 @@ class MGMessage:
 			self.length = "long"
 			assert(len(contents) == 14)
 
+			source_byte   = contents[1]
+			sink_byte     = contents[2]
+			msg_type_byte = contents[3]
+			payload 	  = contents[4:11]
+			padding		  = contents[11:13]
+			checksum_val  = contents[13]
 
-_testVal = MGMessage("short", "microphone", "main_out", "patch", [0x44, 0x73])
+			assert source_byte in sources.values()
+			assert sink_byte in sinks.values()
+			assert msg_type_byte in msg_types.values()
+			assert padding == [0x00] * 2, ("Padding contains values: " + ' '.join("{:02X}".format(pad) for pad in padding))
+
+			self.source = lookup_value(sources, source_byte)
+			self.sink = lookup_value(sinks, sink_byte)
+			self.msg_type = lookup_value(msg_types, msg_type_byte)
+
+
+			self.payload = payload
+		
+		elif (contents[0] == 0x06):
+			self.length = "bigger"
+			assert(len(contents) == 30)
+
+			source_byte   = contents[1]
+			sink_byte     = contents[2]
+			msg_type_byte = contents[3]
+			payload 	  = contents[4:29]
+			#padding		  = contents[11:13]
+			checksum_val  = contents[29]
+
+			assert source_byte in sources.values()
+			assert sink_byte in sinks.values()
+			assert msg_type_byte in msg_types.values()
+			#assert padding == [0x00] * 2, ("Padding contains values: " + ' '.join("{:02X}".format(pad) for pad in padding))
+
+			self.source = lookup_value(sources, source_byte)
+			self.sink = lookup_value(sinks, sink_byte)
+			self.msg_type = lookup_value(msg_types, msg_type_byte)
+
+
+			self.payload = payload
+
+		elif (contents[0] == 0x04):
+			self.length = "longer"
+			assert(len(contents) == 22)
+
+			source_byte   = contents[1]
+			sink_byte     = contents[2]
+			msg_type_byte = contents[3]
+			payload 	  = contents[4:21]
+			#padding		  = contents[11:13]
+			checksum_val  = contents[21]
+
+			assert source_byte in sources.values()
+			assert sink_byte in sinks.values()
+			assert msg_type_byte in msg_types.values()
+			#assert padding == [0x00] * 2, ("Padding contains values: " + ' '.join("{:02X}".format(pad) for pad in padding))
+
+			self.source = lookup_value(sources, source_byte)
+			self.sink = lookup_value(sinks, sink_byte)
+			self.msg_type = lookup_value(msg_types, msg_type_byte)
+
+
+			self.payload = payload
+
+
+		elif (contents[0] == 0x0B):
+			self.length = "huge"
+			assert(len(contents) == 50)
+
+			source_byte   = contents[1]
+			sink_byte     = contents[2]
+			msg_type_byte = contents[3]
+			payload 	  = contents[4:49]
+			#padding		  = contents[11:13]
+			checksum_val  = contents[49]
+
+			assert source_byte in sources.values()
+			assert sink_byte in sinks.values()
+			assert msg_type_byte in msg_types.values()
+			#assert padding == [0x00] * 2, ("Padding contains values: " + ' '.join("{:02X}".format(pad) for pad in padding))
+
+			self.source = lookup_value(sources, source_byte)
+			self.sink = lookup_value(sinks, sink_byte)
+			self.msg_type = lookup_value(msg_types, msg_type_byte)
+
+
+			self.payload = payload
+
+
+_testVal = MGMessage("short", "microphone", "main_out", "patch", [0x44, 0x73, 0x00, 0x00, 0x00])
 
 assert _testVal.compose_message() == hexstring_to_list("00 01 05 43 00 01 00 04 00 44 73 00 00 00 7b"), "{} / {}".format(list_to_hexstring(_testVal.compose_message()), "00 01 05 43 00 01 00 04 00 44 73 00 00 00 7b")
 assert MGMessage(None, _testVal.compose_message()) == _testVal, "{} / {}".format(MGMessage(None, _testVal.compose_message()), _testVal)

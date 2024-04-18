@@ -1,4 +1,3 @@
-first 5 bytes are constant - 0 1 5 67 0
 
 
 sliders:
@@ -17,3 +16,9 @@ Some B2 values have fixed SVs and correspondingly fixed B5 and B9.
 buttons:
 
 Mute buttons have a 19-byte spikes
+
+
+
+errors:
+
+the error replies are all tiny messages with a 7F status byte and duplicates the offending source, sink, action, payload bytes

@@ -1,6 +1,7 @@
 #!/usr/bin/python
+
 import mido
-import os
+import compose
 import console
 
 clear = console.clear
@@ -30,9 +31,10 @@ def user_select_input():
 
 		current_input = mido.get_input_names()[x]
 		return
-		
+
 user_select_input()
 
 with mido.open_input(current_input) as inport:
-	for msg in inport:
-		print(''.join('{:02X} '.format(a) for a in msg.data))
+    for msg in inport:
+        print(compose.list_to_hexstring(msg.data))
+        print(compose.MGMessage(None, msg.data))
