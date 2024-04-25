@@ -22,8 +22,8 @@ B0 B1 B2 B3 B4 B5 B6 B7 B8 B9
 B3 is command type
 
 B0 indicates message length:
-    B0 = 01 -> message is 10 bytes long
-    B0 = 02 -> message is 14 bytes long
+    B0 = 01 -> message is 15 bytes long
+    B0 = 02 -> message is 19 bytes long
 
 1) Sliders - B3 = 1
 

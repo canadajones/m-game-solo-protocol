@@ -4,7 +4,6 @@
 import mido
 import os
 import time
-import keyboard
 import sys
 
 import console
@@ -105,7 +104,7 @@ def patch(args):
 	if not sink in compose.sinks.keys():
 		return (False, "E_no_such_sink")
 	
-	current_message = compose.MGMessage("short", source, sink, "patch", [0x44, 0x73]).compose_message()
+	current_message = compose.MGMessage("short", source, sink, "patch", [0x44, 0x73, 0x00, 0x00, 0x00]).compose_message()
 	return (True, None)
 
 def unpatch(args):
@@ -121,7 +120,7 @@ def unpatch(args):
 		return (False, "E_no_such_sink")
 
 
-	current_message = compose.MGMessage("short", source, sink, "patch", [0x44, 0x73]).compose_message()
+	current_message = compose.MGMessage("short", source, sink, "patch", [0x44, 0x00, 0x00, 0x00, 0x00]).compose_message()
 	return (True, None)
 
 def vol_change(args):
@@ -183,16 +182,32 @@ def listen(args):
 					print(compose.list_to_hexstring(msg.data))
 					print(compose.MGMessage(None, msg.data))
 		
-		
+
 		except:
 			return (True, None)
 		
 
+def unpatch_all(args):
+	for source in compose.sources.keys():
+		for sink in compose.sinks.keys():
+			unpatch([source, sink])
+			transmit([])
+	
+	return (True, None)
 
 
 
+def default_patch(args):
+	patch(["game", "stream"])
+	transmit([])
+	patch(["chat", "chat"])
+	transmit([])
+	patch(["sampler", "sampler"])
+	transmit([])
+	patch(["system", "alt_usb"])
+	transmit([])
 
-
+	return (True, None)
 
 function_command_dict = {
 	"list_sources": list_sources,
@@ -200,6 +215,8 @@ function_command_dict = {
 	"list_msg_types": list_msg_types,	
 	"patch": patch,
 	"unpatch": unpatch,
+	"unpatch_all": unpatch_all,
+	"default_patch": default_patch,
 	"vol_change": vol_change,
 	"list_message": list_message,
 	"pretty_message": list_message_pretty,		

@@ -27,11 +27,12 @@ lengths = {
 }
 sources = {
     "microphone": 0x00,
-    "game":       0x02,
-    "chat":       0x04,
+    "game":       0x02, # from PC
+    "chat":       0x04, # from PC
     "auxiliary":  0x06,
-    "sampler":    0x08,
-    "system":     0x0A,
+    "sampler":    0x08, # from PC
+    "system":     0x0A, # from PC
+	
 	"voicefx":	  0x0E,
 	"muteaux":    0x0C,
 	"banking":	  0x10,
@@ -43,10 +44,11 @@ sources = {
 	"button6":    0x1E
 }
 sinks = {
-    "stream":     0x00,
-    "chat":       0x01,
-    "alt_usb":    0x02,
-    "sampler":    0x03,
+    "stream":     0x00, # to PC
+    "chat":       0x01, # to pc
+    "alt_usb":    0x02, # to PC
+    "sampler":    0x03, # to PC
+
     "main_out":   0x04,
     "phones_out": 0x05
 }
