@@ -1,4 +1,4 @@
-host:
+host: - generic SYSEX device ID command
 7e 00 06 01
 
 reply

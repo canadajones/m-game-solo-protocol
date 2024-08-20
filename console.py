@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 from os import system
 from error_code_table import error_decode as edecode
 from sys import exit

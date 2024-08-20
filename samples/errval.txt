@@ -13,7 +13,7 @@ MGMessage of length short. Status 00. Action vol_change (game | chat). Payload 0
 
 
 Received
-00 01 05 43 7F 00 0B 00 00 44 69 
+00 01 05 43 0 00 0B 00 00 44 69 
 MGMessage of length tiny. Status 7F. Action vol_change (??? | stream) Payload 44
 
 in response to

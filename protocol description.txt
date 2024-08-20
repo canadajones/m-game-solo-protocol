@@ -1,8 +1,12 @@
+This device communicates over MIDI, using System Exclusive messages to send commands back and forth. 
+
 SysEx - commands start with data bytes 
+
+
 00 01 05 43 00
 00    - extended manufacturer ID will follow
 01 05 - Manufacturer ID for M-Audio
-43 - Device ID, most likely
+43 - Device ID
 00 - Status - 00 for success, 7F for error
 
 
@@ -10,25 +14,42 @@ The remaining bytes are described in this document.
 
 
 
-TODO:
-Explain 19-byte data byte spikes
-Explain mute/expletive buttons
-Figure out sample bank and voice fx
-
-
 01 0A 00 01 00 35 00 00 00 76
 B0 B1 B2 B3 B4 B5 B6 B7 B8 B9
 
 B3 is command type
 
-B0 indicates message length:
-    B0 = 01 -> message is 15 bytes long
-    B0 = 02 -> message is 19 bytes long
+B0 indicates message length. For now, every known length value is specified in compose.py.
 
-1) Sliders - B3 = 1
+1) Patching inputs and outputs - B3 = 0
 
-Assuming slider value (SV henceforth) is an unsigned number from 0 to 7F describing slider position, where 0 is bottom and 7F is top
+This device supports patching any input to any output. There are 6 inputs, and 6 outputs. Inputs and outputs are labelled relative to the device (i.e. an input is audio going into the interface)
+
+Inputs              ID
+    Microphone:     0x00
+    Game:           0x02  # from PC
+    Chat In:        0x04  # from PC
+    Auxiliary:      0x06
+    Sampler:        0x08  # from PC
+    System:         0x0A  # from PC
+
+Outputs             ID
+    Stream:         0x00  # to PC
+    Chat Out:       0x01  # to pc
+    Auxiliary USB:  0x02  # to PC
+    Sampler:        0x03  # to PC
+    Main Out:       0x04
+    Phones Out:     0x05
+
+The microphone source comes from the microphone jack/XLR input, while the auxiliary input comes from either the optical in or the 3.5 mm input jack (configurable in the OEM software)
+The main out and phones out outputs go to the corresponding output jacks on the back of the device.
+
+
+2) Sliders/sink volume changes - B3 = 1
+
 All math is done in 8 bit two's complement, then the result's highest bit is set to 0.
+Each slider corresponds to a source, except for the rightmost slider, which corresponds to two virtual sources. The microphone slider c
+
 
 01 02 00 01 00 00 00 00 00 33 
 01 02 00 01 44 00 00 00 00 6F 
@@ -43,25 +64,18 @@ b1 is source ID
 
 b2 is sink ID
 
-B4 is sometimes 00, sometimes 44
+B4 is sometimes 00, sometimes 0x44
 
 B5:
-    if SV  = 0, B5 is 0
-    if SV != 0, B5 = slider value + B4
-
-B6-B8 is padding 0
+    Volume value. For B4 = 0, this is the raw linear slider position encoded from 00 = bottom, 7F = top, with some deadzone at the very ends.
+                  For B4 = 0x44
+B5 - B8:
+    Unused for sliders, not guaranteed to be 0 in all message types
 
 B9 is checksum value. Summing all values (including the ones in sysex prologue) including this one will produce 0 mod 128.
 
-Each move of a slider sends a series of messages. These sequences may be stitched together as such:
-
-First, one message is sent where B2 and B4 is 0.
-
-Thereafter, a number of messages are sent, where the following rules apply:
-    For each B1 value, there is one or zero messages sent with each B2 value less than 5, and where B4 is 44.
-    When interpreting, the messages should be grouped by B1, then sorted by ascending B2
-    The messages are sent in ascending B2 order. 
-    Each slider modification started by a B1 and B2 combo is terminated with a B2 = 5.
+Each move of a slider sends a series of messages.
+The first message has B4 = 0, and reports the position of the slider corresponding to the given sink. The next 6 messages reports the volume settings of each of the 6 sinks. This volume is non-linear, and has yet to be summarised.¨
 
 
 
@@ -71,7 +85,3 @@ Buttons - B3 = 2
 
 
 
-
-
-Patching.
-This device supports patching any input to any output. There are 6 inputs, and 6 outputs.
